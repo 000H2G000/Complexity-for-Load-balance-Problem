@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche Tabou - Load Balancing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            padding: 40px 20px;
+            animation: fadeIn 1s ease-in;
+        }
+        
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.3em;
+            opacity: 0.95;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            background: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .nav-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .nav-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .slide {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 20px 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .slide.active {
+            display: block;
+        }
+        
+        .slide h2 {
+            color: #667eea;
+            font-size: 2.2em;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .slide h3 {
+            color: #764ba2;
+            font-size: 1.6em;
+            margin: 25px 0 15px 0;
+        }
+        
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .keyword { color: #ff79c6; }
+        .function { color: #50fa7b; }
+        .comment { color: #6272a4; font-style: italic; }
+        .number { color: #bd93f9; }
+        
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .param-card {
+            background: linear-gradient(135deg, #667eea22 0%, #764ba222 100%);
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            transition: transform 0.3s ease;
+        }
+        
+        .param-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .param-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .complexity-box {
+            background: #f0f7ff;
+            border: 2px solid #667eea;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .complexity-formula {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #764ba2;
+            text-align: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+        }
+        
+        .steps-list {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+        
+        .steps-list li {
+            counter-increment: step-counter;
+            padding: 15px 15px 15px 60px;
+            margin: 15px 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .steps-list li:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        .steps-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .visualization {
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+        }
+        
+        .server-viz {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 200px;
+            margin: 20px 0;
+        }
+        
+        .server {
+            width: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            transition: all 0.5s ease;
+            cursor: pointer;
+        }
+        
+        .server:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .load-label {
+            margin-bottom: 10px;
+        }
+        
+        .example-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        
+        .advantage {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        
+        .disadvantage {
+            background: #f8d7da;
+            border-left: 5px solid #dc3545;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .highlight {
+            background: linear-gradient(120deg, #ffc107 0%, #ff9800 100%);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+        .algo-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 25px 30px;
+        margin: 25px 0;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        border-left: 6px solid #667eea;
+        }
+
+        .algo-steps {
+        list-style: none;
+        counter-reset: step;
+        margin: 0;
+        padding-left: 0;
+        }
+        .algo-steps > li {
+        counter-increment: step;
+        margin: 18px 0;
+        padding-left: 50px;
+        position: relative;
+        line-height: 1.7;
+        }
+        .algo-steps > li::before {
+        content: counter(step);
+        position: absolute;
+        left: 0; top: 0;
+        background: #667eea;
+        color: white;
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: bold;
+        }
+        .sub-steps li {
+        margin: 10px 0;
+        padding-left: 10px;
+        border-left: 3px solid #764ba2;
+        }
+        .tip-box {
+        background: linear-gradient(135deg,#f5f7ff 0%,#c3cfe2 100%);
+        border-left: 5px solid #667eea;
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 25px;
+        }
+        .highlight {
+        background: #eef2ff;
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #4c51bf;
+        font-weight: 600;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Recherche Tabou (Tabu Search)</h1>
+            <p class="subtitle">Algorithme d'Optimisation pour Load Balancing</p>
+        </header>
+        
+        <div class="nav-buttons">
+            <button class="nav-btn active" onclick="showSlide(0)">Introduction</button>
+            <button class="nav-btn" onclick="showSlide(1)">Q1: Pseudo-code</button>
+            <button class="nav-btn" onclick="showSlide(2)">Q2: Paramètres</button>
+            <button class="nav-btn" onclick="showSlide(3)">Q3: Application</button>
+            <button class="nav-btn" onclick="showSlide(4)">Q4: Complexité</button>
+            <button class="nav-btn" onclick="showSlide(5)">Conclusion</button>
+        </div>
+        
+        <!-- Slide 0: Introduction -->
+        <div class="slide active">
+            <h2>📚 Introduction à la Recherche Tabou</h2>
+            
+            <h3>Qu'est-ce que la Recherche Tabou?</h3>
+            <p style="font-size: 1.1em; line-height: 1.8;">
+                La <span class="highlight">Recherche Tabou</span> est une métaheuristique d'optimisation créée par Fred Glover en 1986. 
+                Elle utilise une <strong>mémoire adaptative</strong> pour éviter de revisiter des solutions déjà explorées et échapper aux optimums locaux.
+            </p>
+            
+            <div class="params-grid">
+                <div class="param-card">
+                    <h4>🎯 Principe</h4>
+                    <p>Explore intelligemment l'espace de recherche en interdisant temporairement certains mouvements</p>
+                </div>
+                <div class="param-card">
+                    <h4>🧠 Mémoire</h4>
+                    <p>Maintient une liste tabou des solutions récentes pour éviter les cycles</p>
+                </div>
+                <div class="param-card">
+                    <h4>🚀 Objectif</h4>
+                    <p>Trouver une solution quasi-optimale pour des problèmes NP-difficiles</p>
+                </div>
+            </div>
+            
+            <h3>🖥️ Problème du Load Balancing</h3>
+            <p style="font-size: 1.1em; line-height: 1.8;">
+                Le <strong>Load Balancing</strong> consiste à répartir équitablement des tâches sur plusieurs serveurs 
+                pour minimiser la charge maximale et optimiser l'utilisation des ressources.
+            </p>
+            
+            <div class="visualization">
+                <h4 style="text-align: center; margin-bottom: 15px;">Exemple de Répartition</h4>
+                <div class="server-viz">
+                    <div class="server" style="height: 80%;">
+                        <div class="load-label">80%</div>
+                    </div>
+                    <div class="server" style="height: 60%;">
+                        <div class="load-label">60%</div>
+                    </div>
+                    <div class="server" style="height: 90%;">
+                        <div class="load-label">90%</div>
+                    </div>
+                    <div class="server" style="height: 70%;">
+                        <div class="load-label">70%</div>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 10px;">
+                    <strong>Objectif:</strong> Minimiser max(80%, 60%, 90%, 70%) = 90%
+                </p>
+            </div>
+        </div>
+        
+        <!-- Slide: Simplified Tabu Search (modern presentation style) -->
+        <div class="slide">
+        <h2>🧭 Question 1: Algorithme Simplifié – Recherche Tabou</h2>
+
+        <div class="algo-card">
+            <h3>⚙️ Étapes principales</h3>
+            <ol class="algo-steps">
+            <li>
+                <strong>Initialisation :</strong>  
+                Générer une <em>solution initiale</em> et la définir comme solution courante et meilleure solution.
+            </li>
+            <li>
+                Créer une <em>liste tabou</em> vide de taille fixée (<code>tailleTabou</code>).
+            </li>
+            <li>
+                Répéter jusqu’à <code>maxIterations</code> :
+                <ul>
+                <li>Générer le <span class="highlight">voisinage</span> de la solution courante.</li>
+                <li>Évaluer chaque voisin et sélectionner le <strong>meilleur non tabou</strong>.</li>
+                <li>Mettre à jour la solution courante et ajouter le mouvement à la liste tabou.</li>
+                <li>Si la nouvelle solution est meilleure → l’enregistrer comme <em>meilleureSolution</em>.</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Retour :</strong>  
+                La meilleure solution trouvée.
+            </li>
+            </ol>
+        </div>
+
+        <div class="code-block">
+            <span class="keyword">Fonction</span> <span class="function">RechercheTabou</span>(tâches, serveurs, maxIterations, tailleTabou)
+            <br>&nbsp;&nbsp;<span class="comment">// --- Initialisation ---</span>
+            <br>&nbsp;&nbsp;solutionCourante ← GenereSolutionInitiale(tâches, serveurs)
+            <br>&nbsp;&nbsp;meilleureSolution ← solutionCourante
+            <br>&nbsp;&nbsp;listeTabou ← FileVide(tailleTabou)
+            <br>&nbsp;&nbsp;iteration ← <span class="number">0</span>
+            <br>
+            <br>&nbsp;&nbsp;<span class="comment">// --- Boucle Principale ---</span>
+            <br>&nbsp;&nbsp;<span class="keyword">Tant que</span> (iteration &lt; maxIterations) <span class="keyword">faire</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;voisinage ← GenereVoisinage(solutionCourante)
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;meilleurVoisin ← <span class="keyword">Null</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;meilleurCout ← +∞
+            <br>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Pour chaque</span> voisin <span class="keyword">dans</span> voisinage <span class="keyword">faire</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cout ← EvalueSolution(voisin)
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mouvement ← ExtraitMouvement(solutionCourante, voisin)
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Si</span> (non EstTabou(mouvement, listeTabou) 
+                <span class="keyword">OU</span> cout &lt; EvalueSolution(meilleureSolution)) <span class="keyword">alors</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Si</span> cout &lt; meilleurCout <span class="keyword">alors</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;meilleurVoisin ← voisin
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;meilleurCout ← cout
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Fin Si</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Fin Si</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Fin Pour</span>
+            <br>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// --- Mise à jour ---</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Si</span> meilleurVoisin ≠ <span class="keyword">Null</span> <span class="keyword">alors</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mouvement ← ExtraitMouvement(solutionCourante, meilleurVoisin)
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;solutionCourante ← meilleurVoisin
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AjouteTabou(listeTabou, mouvement, tailleTabou)
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Si</span> EvalueSolution(meilleurVoisin) &lt; EvalueSolution(meilleureSolution)
+                <span class="keyword">alors</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;meilleureSolution ← meilleurVoisin
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Fin Si</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Fin Si</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;iteration ← iteration + <span class="number">1</span>
+            <br>&nbsp;&nbsp;<span class="keyword">Fin Tant que</span>
+            <br>
+            <br>&nbsp;&nbsp;<span class="keyword">Retourner</span> meilleureSolution
+            <br><span class="keyword">Fin Fonction</span>
+        </div>
+
+        <div class="algo-card">
+            <h3>🧩 Fonctions auxiliaires</h3>
+            <ul class="sub-steps">
+            <li><strong>GenereVoisinage(solution):</strong> déplace une tâche d’un serveur à un autre pour créer un ensemble de solutions voisines.</li>
+            <li><strong>EvalueSolution(solution):</strong> calcule la charge maximale sur les serveurs.</li>
+            <li><strong>EstTabou(mouvement):</strong> vérifie si le mouvement figure dans la liste tabou.</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+            <span class="keyword">Fonction</span> <span class="function">GenereVoisinage</span>(solution)
+            <br>&nbsp;&nbsp;voisinage ← EnsembleVide()
+            <br>&nbsp;&nbsp;<span class="keyword">Pour chaque</span> tâche <span class="keyword">dans</span> tâches <span class="keyword">faire</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;serveurActuel ← TrouveServeur(solution, tâche)
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Pour chaque</span> serveurCible <span class="keyword">dans</span> serveurs <span class="keyword">faire</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Si</span> serveurCible ≠ serveurActuel <span class="keyword">alors</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nouveauVoisin ← Copie(solution)
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DeplaceTache(nouveauVoisin, tâche, serveurActuel, serveurCible)
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ajoute(voisinage, nouveauVoisin)
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Fin Si</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">Fin Pour</span>
+            <br>&nbsp;&nbsp;<span class="keyword">Fin Pour</span>
+            <br>&nbsp;&nbsp;<span class="keyword">Retourner</span> voisinage
+            <br><span class="keyword">Fin Fonction</span>
+            <br><br>
+            <span class="keyword">Fonction</span> <span class="function">EvalueSolution</span>(solution)
+            <br>&nbsp;&nbsp;chargeMax ← <span class="number">0</span>
+            <br>&nbsp;&nbsp;<span class="keyword">Pour chaque</span> serveur <span class="keyword">dans</span> serveurs <span class="keyword">faire</span>
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;charge ← CalculeCharge(solution, serveur)
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;chargeMax ← max(chargeMax, charge)
+            <br>&nbsp;&nbsp;<span class="keyword">Fin Pour</span>
+            <br>&nbsp;&nbsp;<span class="keyword">Retourner</span> chargeMax
+            <br><span class="keyword">Fin Fonction</span>
+        </div>
+
+        <div class="tip-box">
+            <h4>💡 À retenir</h4>
+            <p>
+            L’algorithme équilibre entre <strong>exploration</strong> (nouveaux voisins) et 
+            <strong>exploitation</strong> (amélioration locale).  
+            La <em>liste tabou</em> évite les boucles, et le 
+            <em>critère d’aspiration</em> permet d’accepter une solution exceptionnelle même taboue.
+            </p>
+        </div>
+        </div>
+
+        <!-- Slide 2: Paramètres -->
+        <div class="slide">
+            <h2>⚙️ Question 2: Utilité des Paramètres</h2>
+            
+            <div class="params-grid">
+                <div class="param-card">
+                    <h4>📊 maxIterations</h4>
+                    <p><strong>Rôle:</strong> Nombre maximum d'itérations de l'algorithme</p>
+                    <p><strong>Impact:</strong> Plus élevé = exploration plus approfondie mais temps d'exécution plus long</p>
+                    <p><strong>Valeur typique:</strong> 100-10000 selon la taille du problème</p>
+                </div>
+                
+                <div class="param-card">
+                    <h4>📝 tailleTabou</h4>
+                    <p><strong>Rôle:</strong> Nombre de mouvements mémorisés dans la liste tabou</p>
+                    <p><strong>Impact:</strong> Trop petit = risque de cycles; Trop grand = exploration limitée</p>
+                    <p><strong>Valeur typique:</strong> √n à 2√n (n = taille du problème)</p>
+                </div>
+                
+                <div class="param-card">
+                    <h4>🎯 Critère d'aspiration</h4>
+                    <p><strong>Rôle:</strong> Permet d'ignorer le statut tabou si la solution est exceptionnelle</p>
+                    <p><strong>Impact:</strong> Évite de manquer des solutions optimales à cause de restrictions</p>
+                    <p><strong>Condition:</strong> Accepter si meilleure que toutes les solutions trouvées</p>
+                </div>
+                
+                <div class="param-card">
+                    <h4>🔄 Structure de voisinage</h4>
+                    <p><strong>Rôle:</strong> Définit comment générer des solutions voisines</p>
+                    <p><strong>Impact:</strong> Détermine la qualité et la diversité de l'exploration</p>
+                    <p><strong>Pour load balancing:</strong> Déplacement d'une tâche entre serveurs</p>
+                </div>
+            </div>
+            
+            <h3>📋 Tableau Comparatif des Paramètres</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Paramètre</th>
+                        <th>Valeur Basse</th>
+                        <th>Valeur Élevée</th>
+                        <th>Impact sur Performance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>maxIterations</strong></td>
+                        <td>Convergence rapide mais solution sous-optimale</td>
+                        <td>Meilleure solution mais temps long</td>
+                        <td>Linéaire avec le temps</td>
+                    </tr>
+                    <tr>
+                        <td><strong>tailleTabou</strong></td>
+                        <td>Risque de cycles répétitifs</td>
+                        <td>Exploration restreinte, mémoire élevée</td>
+                        <td>Balance diversification/intensification</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Taille voisinage</strong></td>
+                        <td>Exploration limitée</td>
+                        <td>Évaluation coûteuse</td>
+                        <td>Quadratique en nombre de serveurs</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="example-box">
+                <h4>💡 Exemple Pratique</h4>
+                <p>Pour un problème avec 50 tâches et 5 serveurs:</p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>maxIterations:</strong> 1000</li>
+                    <li><strong>tailleTabou:</strong> 7-14 (√50 ≈ 7)</li>
+                    <li><strong>Taille voisinage:</strong> 50 × 4 = 200 solutions</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Slide 3: Application -->
+        <div class="slide">
+            <h2>🔧 Question 3: Application au Load Balancing</h2>
+            
+            <h3>Modélisation du Problème</h3>
+            <p style="font-size: 1.1em; line-height: 1.8;">
+                <strong>Entrées:</strong>
+            </p>
+            <ul class="steps-list">
+                <li><strong>n tâches</strong> avec des charges w₁, w₂, ..., wₙ</li>
+                <li><strong>m serveurs</strong> avec capacités c₁, c₂, ..., cₘ</li>
+                <li><strong>Objectif:</strong> Minimiser max(charge_serveur₁, ..., charge_serveurₘ)</li>
+            </ul>
+            
+            <h3>Étapes d'Application</h3>
+            <ol class="steps-list">
+                <li>
+                    <strong>Solution Initiale:</strong> Utiliser l'heuristique FFD (First Fit Decreasing) 
+                    ou répartition aléatoire des tâches sur les serveurs
+                </li>
+                <li>
+                    <strong>Voisinage:</strong> Déplacer une tâche d'un serveur à un autre. 
+                    Pour n tâches et m serveurs: n × (m-1) voisins possibles
+                </li>
+                <li>
+                    <strong>Fonction d'évaluation:</strong> Calculer la charge maximale:
+                    <div class="complexity-formula">
+                        f(S) = max{∑(wⱼ : tâche j assignée au serveur i) | i = 1..m}
+                    </div>
+                </li>
+                <li>
+                    <strong>Liste Tabou:</strong> Mémoriser les mouvements récents comme des paires (tâche, serveur_origine)
+                </li>
+                <li>
+                    <strong>Critère d'aspiration:</strong> Accepter un mouvement tabou si la nouvelle charge max 
+                    est inférieure à la meilleure trouvée globalement
+                </li>
+            </ol>
+            
+            <h3>Exemple Concret</h3>
+            <div class="example-box">
+                <h4>🎯 Scénario</h4>
+                <p><strong>Tâches:</strong> T1(30), T2(25), T3(20), T4(15), T5(10)</p>
+                <p><strong>Serveurs:</strong> S1, S2, S3</p>
+                
+                <h4 style="margin-top: 15px;">État Initial (FFD):</h4>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>S1: T1(30) + T4(15) = 45</li>
+                    <li>S2: T2(25) + T5(10) = 35</li>
+                    <li>S3: T3(20) = 20</li>
+                    <li><strong>Charge max = 45</strong></li>
+                </ul>
+                
+                <h4 style="margin-top: 15px;">Après Recherche Tabou:</h4>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>S1: T1(30) = 30</li>
+                    <li>S2: T2(25) + T5(10) = 35</li>
+                    <li>S3: T3(20) + T4(15) = 35</li>
+                    <li><strong>Charge max = 35 (amélioration de 22%!)</strong></li>
+                </ul>
+            </div>
+            
+            <h3>Avantages et Limitations</h3>
+            <div class="advantage">
+                <strong>✅ Avantages:</strong>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Échappe aux optimums locaux grâce à la mémoire</li>
+                    <li>Flexible et adaptable à différentes contraintes</li>
+                    <li>Trouve de bonnes solutions en temps raisonnable</li>
+                    <li>Peut être parallelisée pour de grandes instances</li>
+                </ul>
+            </div>
+            
+            <div class="disadvantage">
+                <strong>⚠️ Limitations:</strong>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Pas de garantie d'optimalité</li>
+                    <li>Sensible au choix des paramètres</li>
+                    <li>Peut être coûteux pour de très grandes instances</li>
+                    <li>Nécessite un calibrage pour chaque problème</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Slide 4: Complexité -->
+        <div class="slide">
+            <h2>📐 Question 4: Complexité Algorithmique</h2>
+            
+            <h3>Analyse de Complexité Détaillée</h3>
+            
+            <div class="complexity-box">
+                <h4>🔢 Variables du Problème:</h4>
+                <ul style="margin-left: 20px; margin-top: 10px; line-height: 2;">
+                    <li><strong>n</strong> = nombre de tâches</li>
+                    <li><strong>m</strong> = nombre de serveurs</li>
+                    <li><strong>I</strong> = nombre maximum d'itérations</li>
+                    <li><strong>T</strong> = taille de la liste tabou</li>
+                    <li><strong>V</strong> = taille du voisinage = n × (m-1)</li>
+                </ul>
+            </div>
+            
+            <h3>Complexité par Fonction</h3>
+            
+            <div class="params-grid">
+                <div class="param-card">
+                    <h4>1️⃣ GenereVoisinage()</h4>
+                    <div class="complexity-formula">O(n × m)</div>
+                    <p><strong>Justification:</strong> Pour chaque tâche (n), on considère tous les serveurs de destination (m-1)</p>
+                </div>
+                
+                <div class="param-card">
+                    <h4>2️⃣ EvalueSolution()</h4>
+                    <div class="complexity-formula">O(n + m)</div>
+                    <p><strong>Justification:</strong> Parcourir toutes les tâches (n) ou tous les serveurs (m) pour calculer les charges</p>
+                </div>
+                
+                <div class="param-card">
+                    <h4>3️⃣ EstTabou()</h4>
+                    <div class="complexity-formula">O(T)</div>
+                    <p><strong>Justification:</strong> Recherche linéaire dans la liste tabou de taille T</p>
+                </div>
+                
+                <div class="param-card">
+                    <h4>4️⃣ AjouteTabou()</h4>
+                    <div class="complexity-formula">O(1)</div>
+                    <p><strong>Justification:</strong> Ajout en tête de liste circulaire avec structure appropriée</p>
+                </div>
+            </div>
+            
+            <h3>Complexité Globale de l'Algorithme</h3>
+            
+            <div class="complexity-box">
+                <h4 style="text-align: center; color: #667eea; margin-bottom: 20px;">Analyse Complète</h4>
+                
+                <p><strong>Pour une itération:</strong></p>
+                <ol style="margin-left: 20px; line-height: 2;">
+                    <li>Génération du voisinage: <strong>O(n × m)</strong></li>
+                    <li>Pour chaque voisin (n × m voisins):
+                        <ul style="margin-left: 20px;">
+                            <li>Évaluation: O(n + m)</li>
+                            <li>Vérification tabou: O(T)</li>
+                        </ul>
+                    </li>
+                    <li>Mise à jour liste tabou: <strong>O(1)</strong></li>
+                </ol>
+                
+                <p style="margin-top: 20px;"><strong>Complexité par itération:</strong></p>
+                <div class="complexity-formula">
+                    O(n × m × (n + m + T))
+                </div>
+                
+                <p style="margin-top: 20px;"><strong>Complexité totale (I itérations):</strong></p>
+                <div class="complexity-formula" style="font-size: 1.6em; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    O(I × n × m × (n + m + T))
+                </div>
+                
+                <p style="margin-top: 20px;"><strong>Simplification:</strong> Si T ≈ √n et m << n:</p>
+                <div class="complexity-formula">
+                    O(I × n² × m)
+                </div>
+            </div>
+            
+            <h3>Comparaison avec d'Autres Algorithmes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Algorithme</th>
+                        <th>Complexité Temporelle</th>
+                        <th>Qualité Solution</th>
+                        <th>Garantie</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Recherche Tabou</strong></td>
+                        <td>O(I × n² × m)</td>
+                        <td>Excellente</td>
+                        <td>Aucune</td>
+                    </tr>
+                    <tr>
+                        <td>Algorithme Glouton (FFD)</td>
+                        <td>O(n log n)</td>
+                        <td>Bonne</td>
+                        <td>Approximation 11/9</td>
+                    </tr>
+                    <tr>
+                        <td>Recuit Simulé</td>
+                        <td>O(I × n × m)</td>
+                        <td>Bonne</td>
+                        <td>Aucune</td>
+                    </tr>
+                    <tr>
+                        <td>Algorithmes Génétiques</td>
+                        <td>O(I × P × n × m)</td>
+                        <td>Très bonne</td>
+                        <td>Aucune</td>
+                    </tr>
+                    <tr>
+                        <td>Branch & Bound (exact)</td>
+                        <td>O(m^n)</td>
+                        <td>Optimale</td>
+                        <td>Optimale</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>Complexité en Espace</h3>
+            <div class="complexity-box">
+                <h4>Mémoire Utilisée:</h4>
+                <ul style="margin-left: 20px; line-height: 2; margin-top: 10px;">
+                    <li><strong>Solution courante:</strong> O(n) - assignation de chaque tâche</li>
+                    <li><strong>Meilleure solution:</strong> O(n)</li>
+                    <li><strong>Liste tabou:</strong> O(T) où T ≈ √n</li>
+                    <li><strong>Voisinage (si stocké):</strong> O(n × m × n) = O(n² × m)</li>
+                </ul>
+                
+                <div class="complexity-formula" style="margin-top: 20px;">
+                    Complexité spatiale totale: O(n² × m)
+                </div>
+                
+                <p style="margin-top: 15px;"><strong>💡 Optimisation:</strong> Générer les voisins à la volée sans les stocker réduit à <strong>O(n)</strong></p>
+            </div>
+            
+            <div class="example-box">
+                <h4>📊 Exemple Numérique</h4>
+                <p>Pour n = 100 tâches, m = 10 serveurs, I = 1000 itérations, T = 10:</p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>Nombre d'évaluations:</strong> 1000 × 100 × 10 = 1,000,000 évaluations</li>
+                    <li><strong>Opérations totales:</strong> ≈ 1000 × 100 × 10 × (100 + 10 + 10) ≈ 120,000,000</li>
+                    <li><strong>Temps estimé:</strong> ~0.12 secondes (à 1 milliard d'opérations/sec)</li>
+                </ul>
+            </div>
+            
+            <h3>Facteurs Impactant les Performances</h3>
+            <div class="params-grid">
+                <div class="param-card">
+                    <h4>⚡ Accélération Possible</h4>
+                    <ul style="margin-left: 15px; margin-top: 10px;">
+                        <li>Évaluation incrémentale</li>
+                        <li>Hash table pour liste tabou</li>
+                        <li>Limitation du voisinage</li>
+                        <li>Parallélisation</li>
+                    </ul>
+                </div>
+                
+                <div class="param-card">
+                    <h4>🐌 Ralentissements</h4>
+                    <ul style="margin-left: 15px; margin-top: 10px;">
+                        <li>Grand nombre de serveurs</li>
+                        <li>Évaluations coûteuses</li>
+                        <li>Liste tabou trop grande</li>
+                        <li>Voisinage complet</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 5: Conclusion -->
+        <div class="slide">
+            <h2>🎓 Conclusion et Synthèse</h2>
+            
+            <h3>Récapitulatif des Réponses</h3>
+            
+            <div class="params-grid" style="grid-template-columns: 1fr;">
+                <div class="param-card" style="border-left-color: #4CAF50;">
+                    <h4>✅ Question 1: Pseudo-code</h4>
+                    <p>Algorithme complet avec initialisation, génération de voisinage, gestion de la liste tabou, 
+                    critère d'aspiration et mise à jour de la meilleure solution</p>
+                </div>
+                
+                <div class="param-card" style="border-left-color: #2196F3;">
+                    <h4>✅ Question 2: Paramètres</h4>
+                    <p><strong>maxIterations</strong> contrôle l'exploration, <strong>tailleTabou</strong> évite les cycles, 
+                    <strong>critère d'aspiration</strong> permet la flexibilité, et la <strong>structure de voisinage</strong> 
+                    détermine la qualité de recherche</p>
+                </div>
+                
+                <div class="param-card" style="border-left-color: #FF9800;">
+                    <h4>✅ Question 3: Application</h4>
+                    <p>Modélisation du load balancing avec déplacement de tâches entre serveurs, 
+                    minimisation de la charge maximale, et critères d'évaluation adaptés</p>
+                </div>
+                
+                <div class="param-card" style="border-left-color: #9C27B0;">
+                    <h4>✅ Question 4: Complexité</h4>
+                    <p><strong>O(I × n² × m)</strong> en temps avec justification détaillée de chaque composante, 
+                    <strong>O(n² × m)</strong> en espace (optimisable à O(n))</p>
+                </div>
+            </div>
+            
+            <h3>Points Clés à Retenir</h3>
+            <ol class="steps-list">
+                <li>
+                    <strong>Métaheuristique puissante:</strong> La Recherche Tabou utilise une mémoire adaptative 
+                    pour éviter les cycles et explorer efficacement l'espace de solutions
+                </li>
+                <li>
+                    <strong>Balance exploration/exploitation:</strong> Les paramètres permettent d'ajuster 
+                    finement le comportement entre diversification et intensification
+                </li>
+                <li>
+                    <strong>Adapté au load balancing:</strong> Structure de voisinage naturelle (déplacement de tâches) 
+                    et fonction objectif claire (minimiser charge max)
+                </li>
+                <li>
+                    <strong>Complexité raisonnable:</strong> Polynomial en pratique, bien que sans garantie 
+                    d'optimalité, trouve d'excellentes solutions en temps acceptable
+                </li>
+                <li>
+                    <strong>Flexibilité:</strong> Facile à adapter à des contraintes supplémentaires 
+                    (affinités, capacités, coûts de migration, etc.)
+                </li>
+            </ol>
+            
+            <h3>Applications Réelles</h3>
+            <div class="params-grid">
+                <div class="param-card">
+                    <h4>☁️ Cloud Computing</h4>
+                    <p>Répartition de machines virtuelles sur serveurs physiques</p>
+                </div>
+                <div class="param-card">
+                    <h4>🌐 Réseaux</h4>
+                    <p>Distribution de trafic sur serveurs web (load balancers)</p>
+                </div>
+                <div class="param-card">
+                    <h4>🏭 Production</h4>
+                    <p>Ordonnancement de tâches sur machines parallèles</p>
+                </div>
+                <div class="param-card">
+                    <h4>📊 Big Data</h4>
+                    <p>Allocation de jobs MapReduce sur clusters</p>
+                </div>
+            </div>
+            
+            <h3>Pour Aller Plus Loin</h3>
+            <div class="example-box">
+                <h4>📚 Améliorations Possibles:</h4>
+                <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+                    <li><strong>Mémoire à long terme:</strong> Fréquence d'utilisation des mouvements</li>
+                    <li><strong>Intensification:</strong> Exploiter les régions prometteuses</li>
+                    <li><strong>Diversification:</strong> Forcer l'exploration de nouvelles zones</li>
+                    <li><strong>Tabu adaptatif:</strong> Ajuster dynamiquement la taille de la liste</li>
+                    <li><strong>Recherche par chemins:</strong> Mémoriser des séquences de mouvements</li>
+                    <li><strong>Hybridation:</strong> Combiner avec algorithmes génétiques ou recuit simulé</li>
+                </ul>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; text-align: center; margin-top: 30px;">
+                <h3 style="color: white; border: none; margin-bottom: 15px;">🎯 Merci de votre attention!</h3>
+                <p style="font-size: 1.2em;">La Recherche Tabou: Une solution élégante pour l'optimisation combinatoire</p>
+                <p style="margin-top: 15px; opacity: 0.9;">Projet réalisé pour le cours de Recherche Opérationnelle</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const buttons = document.querySelectorAll('.nav-btn');
+        
+        function showSlide(index) {
+            slides[currentSlide].classList.remove('active');
+            buttons[currentSlide].classList.remove('active');
+            
+            currentSlide = index;
+            
+            slides[currentSlide].classList.add('active');
+            buttons[currentSlide].classList.add('active');
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Animation pour les serveurs de visualisation
+        const servers = document.querySelectorAll('.server');
+        servers.forEach((server, index) => {
+            server.addEventListener('click', () => {
+                const randomHeight = Math.floor(Math.random() * 60) + 40;
+                server.style.height = randomHeight + '%';
+                server.querySelector('.load-label').textContent = randomHeight + '%';
+            });
+        });
+        
+        // Animation d'entrée pour les cartes
+        const cards = document.querySelectorAll('.param-card');
+        cards.forEach((card, index) => {
+            card.style.animationDelay = (index * 0.1) + 's';
+            card.style.animation = 'slideIn 0.5s ease-out forwards';
+        });
+    </script>
+</body>
+</html>

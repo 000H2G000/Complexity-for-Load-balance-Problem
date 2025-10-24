@@ -1,0 +1,10 @@
+ID,Description,N_Tasks,N_Servers,Min_Duration,Max_Duration,Mean_Duration,Total_Load,Optimal_Lower_Bound
+instance_1,"Petit - 10 tâches, 2 serveurs",10,2,15,93,63.4,634,317.0
+instance_2,"Petit - 20 tâches, 3 serveurs",20,3,17,92,55.45,1109,369.6666666666667
+instance_3,"Petit - 30 tâches, 4 serveurs",30,4,2,100,55.233333333333334,1657,414.25
+instance_4,"Moyen - 50 tâches, 5 serveurs",50,5,4,96,45.98,2299,459.8
+instance_5,"Moyen - 100 tâches, 8 serveurs",100,8,1,100,50.04,5004,625.5
+instance_6,"Moyen - 150 tâches, 10 serveurs",150,10,3,99,51.98,7797,779.7
+instance_7,"Grand - 300 tâches, 15 serveurs",300,15,1,100,50.303333333333335,15091,1006.0666666666667
+instance_8,"Grand - 500 tâches, 20 serveurs",500,20,1,100,48.87,24435,1221.75
+instance_9,"Grand - 1000 tâches, 25 serveurs",1000,25,1,100,50.779,50779,2031.16
