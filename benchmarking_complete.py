@@ -33,7 +33,7 @@ def run_complete_benchmark(benchmark_suite, algorithms):
         for algo_func, algo_name, params in algorithms:
             try:
                 results, solution = evaluate_algorithm(
-                    algo_func, tasks, n_servers, algo_name, **params
+                    algo_func, tasks, n_servers, algo_name, track_progress=True, **params
                 )
                 
                 # Ajouter les informations de l'instance
@@ -53,6 +53,68 @@ def run_complete_benchmark(benchmark_suite, algorithms):
         print()
     
     return pd.DataFrame(all_results)
+
+def create_evolution_plots(df):
+    """Crée des graphiques d'évolution par instance:
+    - Makespan vs itération/génération (fonction coût)
+    - Makespan vs temps (performance)
+    """
+    instances = df['instance_id'].unique()
+    algo_colors = {
+        'Algorithme Glouton': '#3498db',
+        'Recherche Tabou': '#e74c3c',
+        'Algorithme Génétique': '#2ecc71'
+    }
+
+    for inst_id in instances:
+        inst_df = df[df['instance_id'] == inst_id]
+        description = inst_df.iloc[0]['description']
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+
+        for _, row in inst_df.iterrows():
+            algo = row['algorithm']
+            color = algo_colors.get(algo, None)
+            progress = row.get('progress', None)
+
+            # Courbe en fonction des étapes
+            if isinstance(progress, list) and len(progress) > 0:
+                steps = [p['step'] for p in progress if 'step' in p]
+                best_mk = [p.get('best_makespan', p.get('current_makespan')) for p in progress]
+                ax1.plot(steps, best_mk, label=algo, linewidth=2, marker='o', alpha=0.9, color=color)
+            else:
+                # Un seul point (Greedy sans progression)
+                ax1.scatter([1], [row['makespan']], label=algo, s=60, color=color)
+
+            # Courbe en fonction du temps
+            if isinstance(progress, list):
+                time_points = [p['elapsed_time'] for p in progress if p.get('elapsed_time') is not None]
+                if time_points:
+                    mk_time = [p.get('best_makespan', p.get('current_makespan')) for p in progress if p.get('elapsed_time') is not None]
+                    ax2.plot(time_points, mk_time, label=f"{algo}", linewidth=2, marker='o', alpha=0.9, color=color)
+                else:
+                    # Pas de temps par étape, placer point final
+                    ax2.scatter([row['execution_time']], [row['makespan']], label=f"{algo}", s=60, color=color)
+            else:
+                ax2.scatter([row['execution_time']], [row['makespan']], label=f"{algo}", s=60, color=color)
+
+        ax1.set_title(f"Évolution par itération\n{description}", fontsize=12, fontweight='bold')
+        ax1.set_xlabel('Étape (itération / génération)')
+        ax1.set_ylabel('Makespan (fonction coût)')
+        ax1.grid(True, alpha=0.3)
+        ax1.legend(fontsize=9)
+
+        ax2.set_title(f"Évolution dans le temps\n{description}", fontsize=12, fontweight='bold')
+        ax2.set_xlabel('Temps écoulé (s)')
+        ax2.set_ylabel('Makespan (fonction coût)')
+        ax2.grid(True, alpha=0.3)
+        ax2.legend(fontsize=9)
+
+        plt.tight_layout()
+        out_path = f"evolution_{inst_id}.png"
+        plt.savefig(out_path, dpi=300, bbox_inches='tight')
+        print(f"✅ Graphique d'évolution sauvegardé: {out_path}")
+        plt.close(fig)
 
 def create_comparison_tables(df):
     """Crée des tableaux de comparaison"""
@@ -367,6 +429,8 @@ if __name__ == "__main__":
     
     # Créer les visualisations
     create_visualizations(results_df)
+    # Créer les courbes d'évolution par instance
+    create_evolution_plots(results_df)
     
     # Analyser la complexité
     analyze_complexity(results_df)

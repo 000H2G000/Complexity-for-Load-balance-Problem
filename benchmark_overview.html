@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Benchmark Overview</title>
+<style>
+    body { font-family: Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
+    h1 { margin-bottom: 4px; }
+    h2 { margin-top: 28px; }
+    .meta { color: #666; font-size: 0.95rem; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #f5f5f5; text-align: left; }
+    tr:nth-child(even) { background: #fafafa; }
+    .img-wrap { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .img-wrap img { max-width: 100%; border: 1px solid #e1e1e1; }
+    .note { color: #555; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+<h1>Benchmark Overview</h1>
+<div class="meta">Généré le 2025-10-24 01:36:41</div>
+<p class="note">Ce tableau synthétise ce qui est imprimé dans la console (Total charge et Borne inférieure optimale par instance). Les graphiques ci-dessous viennent des scripts existants.</p>
+<h2>Instances</h2>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: left;">
+      <th>ID</th>
+      <th>Description</th>
+      <th>N_Tasks</th>
+      <th>N_Servers</th>
+      <th>Total_Charge</th>
+      <th>Lower_Bound</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>instance_1</td>
+      <td>Petit - 10 tâches, 2 serveurs</td>
+      <td>10</td>
+      <td>2</td>
+      <td>634</td>
+      <td>317.00</td>
+    </tr>
+    <tr>
+      <td>instance_2</td>
+      <td>Petit - 20 tâches, 3 serveurs</td>
+      <td>20</td>
+      <td>3</td>
+      <td>1109</td>
+      <td>369.67</td>
+    </tr>
+    <tr>
+      <td>instance_3</td>
+      <td>Petit - 30 tâches, 4 serveurs</td>
+      <td>30</td>
+      <td>4</td>
+      <td>1657</td>
+      <td>414.25</td>
+    </tr>
+    <tr>
+      <td>instance_4</td>
+      <td>Moyen - 50 tâches, 5 serveurs</td>
+      <td>50</td>
+      <td>5</td>
+      <td>2299</td>
+      <td>459.80</td>
+    </tr>
+    <tr>
+      <td>instance_5</td>
+      <td>Moyen - 100 tâches, 8 serveurs</td>
+      <td>100</td>
+      <td>8</td>
+      <td>5004</td>
+      <td>625.50</td>
+    </tr>
+    <tr>
+      <td>instance_6</td>
+      <td>Moyen - 150 tâches, 10 serveurs</td>
+      <td>150</td>
+      <td>10</td>
+      <td>7797</td>
+      <td>779.70</td>
+    </tr>
+    <tr>
+      <td>instance_7</td>
+      <td>Grand - 300 tâches, 15 serveurs</td>
+      <td>300</td>
+      <td>15</td>
+      <td>15091</td>
+      <td>1006.07</td>
+    </tr>
+    <tr>
+      <td>instance_8</td>
+      <td>Grand - 500 tâches, 20 serveurs</td>
+      <td>500</td>
+      <td>20</td>
+      <td>24435</td>
+      <td>1221.75</td>
+    </tr>
+    <tr>
+      <td>instance_9</td>
+      <td>Grand - 1000 tâches, 25 serveurs</td>
+      <td>1000</td>
+      <td>25</td>
+      <td>50779</td>
+      <td>2031.16</td>
+    </tr>
+  </tbody>
+</table>
+<h2>Graphiques générés</h2>
+<div class="img-wrap">
+<div><div class="meta">benchmark_visualization.png</div><img src="benchmark_visualization.png" alt="benchmark_visualization.png"/></div>
+</div>
+</body>
+</html>

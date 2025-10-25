@@ -38,7 +38,7 @@ class LoadBalancingSolution:
 # 1. ALGORITHME GLOUTON (Greedy)
 # ============================================
 
-def greedy_load_balancing(tasks, n_servers):
+def greedy_load_balancing(tasks, n_servers, track_progress: bool = False):
     """
     Algorithme glouton : LPT (Longest Processing Time)
     Assigne chaque tâche au serveur le moins chargé
@@ -48,11 +48,21 @@ def greedy_load_balancing(tasks, n_servers):
     # Trier les tâches par durée décroissante (LPT)
     sorted_tasks = sorted(enumerate(tasks), key=lambda x: x[1], reverse=True)
     
-    for task_id, task_duration in sorted_tasks:
+    progress = [] if track_progress else None
+    for idx, (task_id, task_duration) in enumerate(sorted_tasks, start=1):
         # Trouver le serveur le moins chargé
         min_server = np.argmin(solution.server_loads)
         solution.assign_task(task_id, min_server)
+        if track_progress:
+            progress.append({
+                'step': idx,
+                'current_makespan': solution.get_makespan(),
+                'best_makespan': solution.get_makespan(),
+                'elapsed_time': None
+            })
     
+    if track_progress:
+        solution.progress = progress
     return solution
 
 
@@ -60,7 +70,7 @@ def greedy_load_balancing(tasks, n_servers):
 # 2. RECHERCHE TABOU
 # ============================================
 
-def tabu_search_load_balancing(tasks, n_servers, max_iterations=100, tabu_tenure=10):
+def tabu_search_load_balancing(tasks, n_servers, max_iterations=100, tabu_tenure=10, track_progress: bool = False):
     """
     Recherche Tabou pour Load Balancing
     Mouvement : transférer une tâche d'un serveur à un autre
@@ -74,6 +84,8 @@ def tabu_search_load_balancing(tasks, n_servers, max_iterations=100, tabu_tenure
     # Liste tabou : stocke les mouvements interdits
     tabu_list = []
     
+    start_time = time.time()
+    progress = [] if track_progress else None
     for iteration in range(max_iterations):
         best_neighbor = None
         best_neighbor_makespan = float('inf')
@@ -124,7 +136,16 @@ def tabu_search_load_balancing(tasks, n_servers, max_iterations=100, tabu_tenure
             tabu_list.append(best_move)
             if len(tabu_list) > tabu_tenure:
                 tabu_list.pop(0)
+        if track_progress:
+            progress.append({
+                'step': iteration + 1,
+                'current_makespan': current_solution.get_makespan(),
+                'best_makespan': best_solution.get_makespan(),
+                'elapsed_time': time.time() - start_time
+            })
     
+    if track_progress:
+        best_solution.progress = progress
     return best_solution
 
 
@@ -133,7 +154,8 @@ def tabu_search_load_balancing(tasks, n_servers, max_iterations=100, tabu_tenure
 # ============================================
 
 def genetic_algorithm_load_balancing(tasks, n_servers, population_size=50, 
-                                     max_generations=100, mutation_rate=0.1):
+                                     max_generations=100, mutation_rate=0.1,
+                                     track_progress: bool = False):
     """
     Algorithme Génétique pour Load Balancing
     Chromosome : liste d'assignations [server_id pour chaque tâche]
@@ -201,6 +223,8 @@ def genetic_algorithm_load_balancing(tasks, n_servers, population_size=50,
     
     best_chromosome = None
     best_fitness = float('-inf')
+    start_time = time.time()
+    progress = [] if track_progress else None
     
     # Évolution
     for generation in range(max_generations):
@@ -212,6 +236,14 @@ def genetic_algorithm_load_balancing(tasks, n_servers, population_size=50,
         if fitnesses[gen_best_idx] > best_fitness:
             best_fitness = fitnesses[gen_best_idx]
             best_chromosome = population[gen_best_idx].copy()
+        if track_progress:
+            current_best_makespan = -best_fitness
+            progress.append({
+                'step': generation + 1,
+                'current_makespan': current_best_makespan,
+                'best_makespan': current_best_makespan,
+                'elapsed_time': time.time() - start_time
+            })
         
         # Nouvelle génération
         new_population = []
@@ -234,14 +266,17 @@ def genetic_algorithm_load_balancing(tasks, n_servers, population_size=50,
         
         population = new_population[:population_size]
     
-    return chromosome_to_solution(best_chromosome)
+    sol = chromosome_to_solution(best_chromosome)
+    if track_progress:
+        sol.progress = progress
+    return sol
 
 
 # ============================================
 # FONCTION D'ÉVALUATION AVEC MÉTRIQUES
 # ============================================
 
-def evaluate_algorithm(algorithm_func, tasks, n_servers, algorithm_name, **kwargs):
+def evaluate_algorithm(algorithm_func, tasks, n_servers, algorithm_name, track_progress: bool = False, **kwargs):
     """
     Évalue un algorithme et retourne les métriques
     """
@@ -252,7 +287,10 @@ def evaluate_algorithm(algorithm_func, tasks, n_servers, algorithm_name, **kwarg
     tracemalloc.start()
     
     # Exécution de l'algorithme
-    solution = algorithm_func(tasks, n_servers, **kwargs)
+    try:
+        solution = algorithm_func(tasks, n_servers, track_progress=track_progress, **kwargs)
+    except TypeError:
+        solution = algorithm_func(tasks, n_servers, **kwargs)
     
     # Fin des mesures
     execution_time = time.time() - start_time
@@ -275,6 +313,8 @@ def evaluate_algorithm(algorithm_func, tasks, n_servers, algorithm_name, **kwarg
         'optimality_gap_%': round(optimality_gap, 2),
         'server_loads': solution.server_loads
     }
+    if hasattr(solution, 'progress'):
+        results['progress'] = solution.progress
     
     return results, solution
 
